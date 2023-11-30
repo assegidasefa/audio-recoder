@@ -1,40 +1,63 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import React, { useState } from "react";
 import { AudioRecorder, useAudioRecorder } from "react-audio-voice-recorder";
+import { message } from "antd";
 
-function App() {
-  const recorderControls = useAudioRecorder(
-    {
-      noiseSuppression: true,
-      echoCancellation: true,
-    },
-    (err) => console.table(err) // onNotAllowedOrFound
-  );
-  const addAudioElement = (blob) => {
-    const url = URL.createObjectURL(blob);
-    const audio = document.createElement('audio');
-    audio.src = url;
-    audio.controls = true;
-    document.body.appendChild(audio);
-  };
+const RecordedAudio = ({ blob }) => {
+  const url = URL.createObjectURL(blob);
 
   return (
     <div>
+      <audio controls src={url} />
+    </div>
+  );
+};
+
+function App() {
+  const [error, setError] = useState("");
+
+  const recorderControls = useAudioRecorder({}, (err) => {
+    console.table("error", err);
+
+    if (
+      err instanceof DOMException &&
+      err.message === "Requested device not found"
+    ) {
+      setError(
+        "Microphone not found. Please ensure that a microphone is connected."
+      );
+    } else {
+      setError("An error occurred during audio recording.");
+    }
+  });
+
+  const [recordedBlob, setRecordedBlob] = useState(null);
+
+  const addAudioElement = (blob) => {
+    setRecordedBlob(blob);
+    setError(""); // Clear error on successful recording
+  };
+
+  const handleStopRecording = () => {
+    recorderControls.stopRecording();
+    setError(""); // Clear error when stopping recording
+  };
+
+  return (
+    <div className="bg-red-300">
       <AudioRecorder
         onRecordingComplete={(blob) => addAudioElement(blob)}
         recorderControls={recorderControls}
-        // downloadOnSavePress={true}
-        // downloadFileExtension="mp3"
         showVisualizer={true}
       />
       <br />
-      <button onClick={recorderControls.stopRecording}>Stop recording</button>
+
+      <span className="text-red-700">{error}</span>
       <br />
+      <button onClick={handleStopRecording}>Stop recording</button>
+      <br />
+      {recordedBlob && <RecordedAudio blob={recordedBlob} />}
     </div>
   );
-
 }
 
 export default App;
